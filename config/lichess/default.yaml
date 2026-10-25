@@ -1,0 +1,11 @@
+token: ${oc.env:LICHESS_TOKEN,""}
+url: https://lichess.org/api
+accept_challenges: true
+rated: false
+max_games: 1
+min_seconds: 60
+timeout_seconds: 30
+retry_seconds: 5
+challenge_bot: null
+challenge_seconds: 180
+challenge_increment: 2

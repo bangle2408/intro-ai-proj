@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 110">
+  <g fill="#FFFCF5" stroke="#344A3B" stroke-width="2.8" stroke-linejoin="miter">
+    <circle cx="40" cy="17" r="5"/>
+    <path d="M40 24C30 36 14 53 14 65Q14 77 24 78H56Q66 77 66 65C66 53 50 36 40 24Z"/>
+    <path d="M40 46V68 M32 55H48" fill="none" stroke-width="3.6"/>
+    <path d="M20 78H60L62 98H18Z M14 98H66V105H14Z"/>
+    <circle cx="40" cy="88" r="4"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+depth: 4
+time_ms: 6000
+book: assets/openings.bin
+book_plies: 20
+book_threshold: 0.9
+hash_entries: 100000
+max_extensions: 8
+max_ply: 96
+move_overhead_ms: 100
+moves_to_go: 30
+increment_fraction: 0.8

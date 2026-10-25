@@ -1,18 +1,23 @@
-# Byte-compiled files
 __pycache__/
-
-# Environments
+*.py[cod]
 .venv/
-
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
 .DS_Store
-
-logs/
-# Chess Elo testing artifacts
-engines/stockfish/stockfish.exe
-tools/cutechess/
+.env
+.env.*
+.idea/
+.vscode/
+*.swp
+*.swo
+*.chess
+outputs/
+multirun/
 results/
-*_out.txt
-*_err.txt
-cute_match_*.txt
-stockfish_*.txt
-myai_*.txt
+logs/
+*.log
+docs/
+.python-version

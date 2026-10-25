@@ -1,0 +1,3 @@
+defaults: [default]
+depth: 8
+time_ms: 12000

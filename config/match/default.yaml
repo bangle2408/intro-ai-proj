@@ -1,0 +1,11 @@
+stockfish: stockfish
+opponent: self
+opponent_elo: 1320
+threads: 1
+hash_mb: 64
+games: 20
+max_plies: 300
+time_control: 60+0
+output: results/match.pgn
+dry_run: false
+seed: 42

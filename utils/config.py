@@ -1,53 +1,58 @@
-"""
-Configuration management for the chess application.
-This module provides a centralized way to manage application configuration.
-"""
+from pathlib import Path
 
-class Config:
-    """Manages application configuration settings."""
-    
-    # Default application settings
-    DEFAULT_AI_SEARCH_DEPTH = 3
-    MAX_AI_SEARCH_DEPTH = 5
-    MIN_AI_SEARCH_DEPTH = 1
-    
-    # UI Configuration
-    DEFAULT_WINDOW_WIDTH = 1000
-    DEFAULT_WINDOW_HEIGHT = 700
-    MIN_WINDOW_WIDTH = 800
-    MIN_WINDOW_HEIGHT = 600
-    
-    # Animation timing
-    DEFAULT_ANIMATION_DURATION = 300  # ms
-    THINKING_DOT_INTERVAL = 300  # ms
-    
-    # Time management settings
-    DEFAULT_WHITE_INCREMENT_MS = 3000  # 3 seconds increment per move
-    DEFAULT_BLACK_INCREMENT_MS = 3000  # 3 seconds increment per move
-    MIN_THINKING_TIME_MS = 500         # Minimum time to think (0.5 seconds)
-    MAX_THINKING_TIME_MS = 30000       # Maximum time to think (30 seconds)
-    EMERGENCY_TIME_MS = 10000          # When to enter emergency mode (10 seconds)
-    
-    # Board colors
-    LIGHT_SQUARE_COLOR = "#c1bfb0"
-    DARK_SQUARE_COLOR = "#7a9bbe"
-    SELECTED_SQUARE_COLOR = "#ffff99"
-    LAST_MOVE_COLOR = "#ffe066"
-    VALID_MOVE_COLOR = "#32CD32"
-    CASTLING_MOVE_COLOR = "#FFA500"
-    CHECK_COLOR = "#FF0000"
-    EN_PASSANT_COLOR = "#9C27B0"  # Purple for en passant
+from hydra import compose, initialize_config_dir
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import DictConfig
 
-    # Button colors
-    START_BUTTON_COLOR = "#2ecc71"
-    PAUSE_BUTTON_COLOR = "#f39c12"
-    RESET_BUTTON_COLOR = "#3498db"
-    SAVE_BUTTON_COLOR = "#16a085"
-    HOME_BUTTON_COLOR = "#b57a33"
-    RESIGN_BUTTON_COLOR = "#e74c3c"
-    UNDO_BUTTON_COLOR = "#9b59b6"
-    
-    # Game modes
-    MODE_HUMAN_AI = "human_ai"
-    MODE_AI_AI = "ai_ai"
-    
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def project_path(value):
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else ROOT / path
+
+
+def load_config(overrides=()):
+    if GlobalHydra.instance().is_initialized():
+        cfg = compose(config_name="app", overrides=list(overrides))
+    else:
+        with initialize_config_dir(version_base="1.3", config_dir=str(ROOT / "config")):
+            cfg = compose(config_name="app", overrides=list(overrides))
+    validate_config(cfg)
+    return cfg
+
+
+def validate_config(cfg: DictConfig):
+    if cfg.mode not in {"gui", "move", "uci", "match", "analyze", "lichess", "worker"}:
+        raise ValueError(f"Unknown mode: {cfg.mode}")
+    if not 1 <= cfg.engine.depth <= 20:
+        raise ValueError("engine.depth must be between 1 and 20")
+    if cfg.engine.time_ms is not None and cfg.engine.time_ms <= 0:
+        raise ValueError("engine.time_ms must be positive or null")
+    if cfg.engine.max_ply < 4 or cfg.engine.hash_entries < 1:
+        raise ValueError("max_ply must be >= 4 and hash_entries must be positive")
+    if cfg.engine.max_extensions < 0 or cfg.engine.moves_to_go < 1:
+        raise ValueError("max_extensions must be nonnegative and moves_to_go positive")
+    if not 0 <= cfg.engine.book_threshold <= 1:
+        raise ValueError("engine.book_threshold must be between 0 and 1")
+    if cfg.ui.mode not in {"human_ai", "ai_ai", "human_human"}:
+        raise ValueError("Invalid ui.mode")
+    if cfg.ui.player_color not in {"white", "black"}:
+        raise ValueError("ui.player_color must be white or black")
+    if cfg.ui.base_seconds <= 0 or cfg.ui.increment_seconds < 0:
+        raise ValueError("Invalid clock settings")
+    if cfg.ui.board_max_size < 320 or not 236 <= cfg.ui.sidebar_width <= 400:
+        raise ValueError("Invalid board or sidebar dimensions")
+    if cfg.ui.move_method not in {"both", "click", "drag"}:
+        raise ValueError("ui.move_method must be both, click or drag")
+    for name in ("max_premoves", "drag_threshold_px", "animation_ms", "premove_cost_ms"):
+        if type(cfg.ui[name]) is not int:
+            raise ValueError(f"ui.{name} must be an integer")
+    if not 1 <= cfg.ui.max_premoves <= 5:
+        raise ValueError("ui.max_premoves must be between 1 and 5")
+    if cfg.ui.drag_threshold_px < 1 or cfg.ui.animation_ms < 0 or cfg.ui.premove_cost_ms < 0:
+        raise ValueError("Invalid drag, animation or premove timing")
+    if len(cfg.evaluation["values"]) != 7 or cfg.evaluation.endgame_material <= 0:
+        raise ValueError("Invalid evaluation values")
+    if any(len(table) != 64 for table in cfg.evaluation.tables.values()):
+        raise ValueError("Each piece-square table must contain 64 values")

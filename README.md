@@ -1,88 +1,55 @@
-# ỨNG DỤNG CỜ VUA - CHESS GAME APPLICATION
+# Chess
 
-## GIỚI THIỆU ĐỀ TÀI
+Ứng dụng cờ vua Python/PyQt5: chơi với AI, hai người chơi hoặc xem AI tự đấu.
 
-Ứng dụng cờ vua được phát triển bằng Python và PyQt5, cung cấp trải nghiệm chơi cờ vua hoàn chỉnh với AI thông minh. Ứng dụng hỗ trợ hai chế độ chơi chính: Người vs AI và AI vs AI, tích hợp hệ thống quản lý thời gian và các tính năng nâng cao.
+## Cài đặt
 
-### Tính năng chính:
-- Chế độ Người vs AI với độ khó có thể điều chỉnh
-- Chế độ AI vs AI để quan sát hai engine cờ vua thi đấu
-- Hệ thống quản lý thời gian linh hoạt với tăng thời gian
-- AI sử dụng thuật toán minimax với alpha-beta pruning
-- Giao diện đồ họa hiện đại với hiệu ứng animation
-- Lưu/tải game với metadata chi tiết
-- Phân tích nước đi với độ sâu tìm kiếm khác nhau
+Sử dụng Python 3.12.
 
-## CÁCH CÀI ĐẶT
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+python game.py
+```
 
-### Yêu cầu hệ thống:
-- Python 3.7 trở lên
-- Hệ điều hành: Windows, macOS, hoặc Linux
+## Cách chơi
 
-### Các bước cài đặt:
+- **New game:** chọn chế độ, màu quân và đồng hồ.
+- Kéo thả hoặc click quân rồi click ô đích để đi.
+- Đặt trước nước đi (premove) khi AI đang nghĩ; chuột phải hoặc **Esc** để hủy.
+- **Preferences:** chỉnh độ khó, cách di chuyển và hiển thị.
+- **Undo / Flip:** đi lại nước trước hoặc lật bàn cờ.
+- **⋯:** lưu, tải ván cờ và đầu hàng.
 
-1. **Cài đặt Python:**
-   - Tải Python từ https://python.org
-   - Đảm bảo chọn "Add Python to PATH" khi cài đặt
+## Cấu hình
 
-2. **Tải source code:**
-   ```
-   git clone https://github.com/pathust/chess-bot
-   ```
+Cấu hình Hydra nằm trong [`config/`](config/). Có thể chỉnh bằng tham số khi chạy:
 
-3. **Cài đặt các thư viện cần thiết:**
-   ```
-   pip install -r requirements.txt
-   ```
+```bash
+python game.py engine=easy ui.player_color=black
+python game.py engine=hard engine.time_ms=5000
+python game.py --cfg job
+```
 
-4. **Chạy ứng dụng:**
-   ```
-   python main.py
-   ```
+`engine.time_ms` là thời gian suy nghĩ tối đa mỗi nước, tính bằng mili giây.
+`--cfg job` hiển thị cấu hình hiện tại.
 
-## HƯỚNG DẪN SỬ DỤNG
+## Chế độ dòng lệnh
 
-### Bắt đầu game:
-1. Chạy file `main.py`
-2. Chọn chế độ chơi: "Human vs AI" hoặc "AI vs AI"
-3. Thiết lập thời gian (tùy chọn)
-4. Bắt đầu chơi!
+| Chế độ | Lệnh |
+| --- | --- |
+| Engine UCI | `python game.py mode=uci` |
+| AI tự đấu, lưu PGN | `python game.py mode=match match.games=2` |
+| Thống kê kết quả PGN | `python game.py mode=analyze pgn=results/match.pgn` |
+| Bot Lichess | `python game.py mode=lichess` |
 
-### Điều khiển game:
-- **Start/Pause**: Bắt đầu/tạm dừng game
-- **Undo**: Hoàn tác nước đi
-- **Save**: Lưu game hiện tại
-- **Load**: Tải game đã lưu
-- **Resign**: Đầu hàng
-- **Reset**: Bắt đầu game mới
+Lichess cần tài khoản BOT và token trong biến môi trường `LICHESS_TOKEN`.
 
-### Thiết lập thời gian:
-- **Không giới hạn**: Chơi không áp lực thời gian
-- **Có thời gian**: Thiết lập thời gian tùy chỉnh
-- **Preset nhanh**: 1, 3, 5, 10, hoặc 15 phút
-- **Tăng thời gian**: Thêm giây sau mỗi nước đi
+## Kiểm thử
 
-## XỬ LÝ LỖI
-
-Nếu gặp lỗi khi chạy:
-
-1. **Lỗi module không tìm thấy:**
-   ```
-   pip install tên_module_bị_thiếu
-   ```
-
-2. **Lỗi Python không nhận diện:**
-   - Kiểm tra Python đã được thêm vào PATH
-   - Thử chạy: `python --version`
-
-3. **Lỗi giao diện:**
-   - Đảm bảo PyQt5 đã được cài đặt đúng
-   - Thử cài lại: `pip uninstall PyQt5` sau đó `pip install PyQt5`
-
-4. **Vấn đề với môi trường ảo:**
-   - Đảm bảo đã kích hoạt môi trường ảo trước khi cài đặt packages
-   - Nếu quên kích hoạt: `chess_env\Scripts\activate` (Windows) hoặc `source chess_env/bin/activate` (macOS/Linux)
-
-## LIÊN HỆ VÀ HỖ TRỢ
-
-Nếu có thắc mắc hoặc phát hiện lỗi, vui lòng tạo issue trong repository hoặc liên hệ trực tiếp với nhóm phát triển.
+```bash
+pip install -e ".[dev]"
+QT_QPA_PLATFORM=offscreen python -m pytest -q
+ruff check .
+```

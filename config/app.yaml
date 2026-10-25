@@ -1,0 +1,23 @@
+defaults:
+  - engine: default
+  - evaluation: default
+  - ui: default
+  - match: default
+  - lichess: default
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+  - _self_
+
+mode: gui
+position: startpos
+moves: []
+pgn: null
+engine_name: MyAI
+opponent_elo: null
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: .
+  output_subdir: null

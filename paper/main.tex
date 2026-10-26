@@ -12,6 +12,9 @@
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{microtype}
 \usepackage{booktabs,tabularx,array}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{placeins}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{needspace}
@@ -46,11 +49,11 @@
 \setlength{\belowdisplayskip}{6pt plus 1pt minus 1pt}
 \setlength{\abovedisplayshortskip}{3pt plus 1pt}
 \setlength{\belowdisplayshortskip}{4pt plus 1pt}
-\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
-\setlength{\floatsep}{8pt plus 2pt minus 2pt}
-\setlength{\intextsep}{8pt plus 2pt minus 2pt}
-\setlength{\abovecaptionskip}{5pt}
-\setlength{\belowcaptionskip}{5pt}
+\setlength{\textfloatsep}{8pt plus 1pt minus 1pt}
+\setlength{\floatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{5pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{1pt}
 \setlength{\bibsep}{4pt plus 1pt}
 \setcitestyle{citesep={;},aysep={,},yysep={;}}
 \renewcommand{\bibsection}{\section*{References}}
@@ -84,6 +87,28 @@
 \newcommand{\Book}{\mathcal{B}}
 \newcommand{\Search}{\mathsf{S}}
 \newcommand{\ind}{\mathbf{1}}
+\newcommand{\chessmove}[1]{\mbox{\normalfont #1}}
+\newsavebox{\deploymentimage}
+\newlength{\deploymentheight}
+% Match the image with natural prose. A small finite glue allowance balances
+% the pair; it cannot hide a short text block behind a large paragraph gap.
+\newcommand{\deploymentpair}[3]{%
+  \sbox{\deploymentimage}{\includegraphics[width=.48\linewidth]{#1}}%
+  \setlength{\deploymentheight}{\dimexpr\ht\deploymentimage+\dp\deploymentimage\relax}%
+  \begin{minipage}[t]{.48\linewidth}
+    \vspace{0pt}\usebox{\deploymentimage}
+  \end{minipage}\hfill
+  \begin{minipage}[t][\deploymentheight][s]{.48\linewidth}
+    \vspace{0pt}%
+    \setlength{\parfillskip}{0pt plus 1fil}%
+    \setlength{\parskip}{5pt}%
+    \setlength{\emergencystretch}{.5em}%
+    #2\par
+    \vskip 0pt plus 4pt
+    #3\unskip\strut\par
+    \vspace{0pt}%
+  \end{minipage}%
+}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \newtheorem{proposition}{Proposition}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
@@ -107,9 +132,10 @@ transposition reuse reduce repeated work, while bounded extensions and late move
 reductions allocate depth according to tactical relevance. An opening book
 provides a separate decision rule for covered early positions. We give a common
 mathematical formulation of these components and identify the assumptions under
-which pruning preserves a fixed-tree minimax value. The resulting account
-specifies the decision procedure and its approximation limits; playing strength
-and the effects of individual components remain open to empirical evaluation.
+which pruning preserves a fixed-tree minimax value. A desktop deployment connects
+this procedure to a live game through asynchronous search, clock-aware budgets,
+and validation of returned actions. Annotated game states and an execution trace
+illustrate the interaction between the search rules and the deployed agent.
 \end{abstract}
 
 \section{Introduction}
@@ -140,14 +166,14 @@ inform move ordering and can be reused when the same position is encountered
 again. Iterative deepening connects these mechanisms to a deadline by retaining
 the action from the latest completed root search.
 
-The paper describes an integration of established techniques. Its purpose is to
-make the decision rule precise at the level of states, values, search bounds,
-and resource allocation. We formulate the positional evaluator, specify the
-interaction between the main search and its tactical frontier, and state the
-scope of the fixed-tree pruning guarantee. This treatment also exposes the
-approximations introduced by reduced searches, compact transposition keys, and
-finite horizons. Quantitative assessment is reserved for the experiments
-section.
+We formulate an integration of established techniques at the level of states,
+values, search bounds, and resource allocation. The formulation specifies how
+the positional evaluator interacts with the tactical frontier and identifies the
+scope of the fixed-tree pruning guarantee. We then describe how this decision
+procedure operates within a desktop game, including the transfer of game state,
+interruption of search, and validation of a returned action. Captured positions
+and worker messages make these interactions observable. Playing strength and
+the benefit of individual search enhancements require separate evaluation.
 
 \section{Related Work}
 \label{sec:related}
@@ -217,10 +243,10 @@ and a maximum nominal depth $d_{\max}$. Its output is a legal action
 $\hat a\in\Actions(s)$. The underlying game objective is the zero-sum terminal
 outcome. Within the available budget, the engine approximates that objective
 through a finite tree whose frontier is scored by a heuristic evaluator.
-An evaluation score is an ordinal measure of positional preference; it carries
+An evaluation score expresses relative positional preference; it carries
 no calibrated interpretation as a probability of winning.
 
-\section{Method}
+\section{Search Framework}
 \label{sec:method}
 
 The decision procedure has three stages. It first checks whether an eligible
@@ -243,6 +269,12 @@ positional tables, and feature weights. We decompose the score as
 The terms represent material, piece placement, pawn structure, king safety,
 central control, and endgame conversion. All use a common score scale.
 Table~\ref{tab:evaluation} summarizes the information they encode.
+
+The parameters are specified before play and shared across searched positions.
+Position-dependent features, including the phase variables, are recomputed as
+moves change the board. Search statistics alter exploration order without
+updating $\theta$. The resulting score expresses the current arrangement under
+a fixed set of positional preferences.
 
 \begin{table}[H]
   \centering
@@ -314,8 +346,7 @@ The static value uses the perspective required by negamax:
      -\kappa\,\ind\{c(s)\text{ is in check}\},
   \label{eq:evaluation}
 \end{equation}
-where $\kappa\ge0$ is the check penalty. The evaluator is fixed throughout a
-search. Search statistics affect exploration order but do not update $\theta$.
+where $\kappa\ge0$ is the check penalty.
 
 \subsection{Adversarial Backups and Search Bounds}
 \label{sec:backups}
@@ -530,6 +561,12 @@ available.
   \end{algorithmic}
 \end{algorithm}
 
+An interrupted pass may contain fully evaluated subtrees. Their cached bounds
+remain subject to the compatibility requirements in Section~\ref{sec:reuse}.
+Updating such a record leaves the retained root action unchanged; the action
+is replaced only after a successful iteration. This preserves a completed
+decision while allowing reusable local work to accumulate.
+
 \section{Search Properties}
 \label{sec:properties}
 
@@ -572,15 +609,197 @@ With at most $H$ transposition records, depth-first traversal stores
 $O(bD+H)$ move and cache information, excluding the input game history.
 Wall-clock cost additionally depends on legal-move generation and evaluation.
 
-\section{Experiments}
-\label{sec:experiments}
-% Intentionally empty. Add only completed, verifiable experiments here.
-\vspace{1.5\baselineskip}
+\FloatBarrier
+\section{Deployment}
+\label{sec:deployment}
+
+The engine is deployed as the computer player in a local desktop chess
+application. The interface maintains the live game, while a separate process
+executes Algorithm~\ref{alg:decision}. This arrangement connects a potentially
+long search to an interactive board and a running clock. The examples below
+were captured from the application launched through \texttt{game.py}; arrows,
+numbered pointers, and the trace plot are explanatory overlays.
+
+\subsection{From a Live Position to a Committed Action}
+
+\paragraph{State transfer.}
+At the start of a computer turn, the application submits a snapshot of the
+position and its move history to the search process. The worker reconstructs
+the search state, including the history used for draw detection. Search then
+operates on that snapshot while the interface continues to handle events.
+Figure~\ref{fig:interface} identifies the information that connects the live
+game to this decision: legal actions, remaining time, move history, and a
+positional estimate.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\linewidth]{deployment-interface.pdf}
+  \caption{The deployed chess interface, annotated to connect visible game
+  information to the search framework. The selected knight exposes legal
+  actions; clocks constrain deliberation; committed moves preserve game
+  history. The optional position estimate displays the static evaluator from
+  White's perspective, in pawn units. It is recomputed for the visible board.}
+  \label{fig:interface}
+\end{figure}
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\linewidth]{deployment-loop.pdf}
+  \caption{The deployed decision loop. A state snapshot invokes either the
+  eligible opening rule or budgeted search. Both paths return an action through
+  the same validation step before the live game advances. The search block
+  combines the mechanisms formalized in Section~\ref{sec:method}.}
+  \label{fig:loop}
+\end{figure}
+
+\paragraph{Action validation.}
+An interruption caused by a new game, a loaded position, or an undo invalidates
+the outstanding search. Each request belongs to a generation of the live game;
+a returned result is accepted only if that generation is still current. The
+application also checks that the game remains active and the action is legal
+before updating the board and clock. These checks keep a delayed response from
+being applied to a changed position. Completed search iterations can update the
+retained search result without changing the live board.
+Figure~\ref{fig:loop} summarizes this separation between computing a candidate
+and applying it to the game.
+
+\paragraph{Clock-aware deliberation.}
+Let $B_{\mathrm{cap}}$ be the configured allowance per move and
+$B_{\mathrm{clock}}(s)$ the allowance derived from remaining time and increment.
+For a timed game, the worker receives
+\begin{equation}
+  B(s)=\min\{B_{\mathrm{cap}},B_{\mathrm{clock}}(s)\}.
+  \label{eq:deployed-budget}
+\end{equation}
+The clock allocation reserves time for future turns and execution overhead.
+The resulting allowance controls the iterative decision rule in
+Equation~\eqref{eq:budget}. Deadline and cancellation checks interrupt the
+current traversal; the latest completed action remains available for return.
+Process communication and interface updates occur outside the measured search
+interval.
+
+Figure~\ref{fig:iterations} shows this rule during a captured computer turn.
+The fifth iteration completed at $1.282$\,s. Search continued until the
+$1.800$\,s allowance was reached, and the returned action remained the
+fifth iteration's \chessmove{dxc6}. The trace records nominal depth: extensions,
+reductions, and tactical continuation can produce paths of different lengths
+within an iteration. Its timestamps describe this execution on the host machine.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\linewidth]{deployment-iterations.pdf}
+  \caption{A captured search with the opening book disabled. Interface excerpts
+  show the transition from computation to the human turn. The plot reconstructs
+  completed iterations from worker messages, illustrating
+  Equation~\eqref{eq:budget}. The shaded interval contains unfinished deeper
+  search. Each completed iteration selected \chessmove{dxc6}, the action
+  subsequently applied to the live game.}
+  \label{fig:iterations}
+\end{figure}
+
+\FloatBarrier
+Across the completed iterations, \chessmove{dxc6} remains the selected action
+while its backed-up score changes from $-1.79$ to $-0.60$ pawn units. These
+scores use Black's perspective at the search root and summarize different
+examined continuations. The worker reports $12{,}000$ node visits at completion
+of the fifth iteration and $17{,}394$ at interruption. The additional local
+analysis leaves the completed root decision available, as required by
+Algorithm~\ref{alg:decision}. The optional board estimate in Figure~\ref{fig:interface}
+uses the current position and White's perspective, following the static
+evaluation in Equation~\eqref{eq:evaluation}.
+
+\subsection{Search Mechanisms in Play}
+
+\begin{figure}[H]
+  \deploymentpair{deployment-opening.pdf}{%
+    \paragraph{Opening knowledge.}
+    After the human plays \chessmove{e4}, the covered position invokes the book
+    rule in Equation~\eqref{eq:book}. In this execution, the eligible set
+    contains only \chessmove{c5}, so the computer selects that action directly.
+    The arrow traces c7--c5. Book weights
+    determine eligibility through the relative threshold; sampling is uniform
+    over the surviving actions. Each eligible action has probability
+    $1/|\Book_\eta(s)|$ at the covered state. At other covered positions, several entries
+    may survive the threshold, so repeated games can
+    \mbox{select different opening continuations.}
+  }{%
+    Book selection supplies an action without a completed root iteration or
+    a backed-up search value. When the permitted prefix ends or no eligible
+    entry exists, the worker invokes iterative deepening. The returned
+    candidate passes the shared validation step in Figure~\ref{fig:loop};
+    acceptance updates the board and
+    \mbox{starts the next player's clock.}
+  }
+  \caption{An opening-book decision after \chessmove{1. e4}. The overlay traces
+  c7--c5 on the live board. Book and search actions undergo the same validation
+  before application.}
+  \label{fig:opening}
+\end{figure}
+
+\Needspace{28\baselineskip}
+\paragraph{An unsettled tactical frontier.}
+Figure~\ref{fig:tactics} follows a human capture and the computer's reply in
+the position used for Figure~\ref{fig:iterations}. After \chessmove{Bxc6}, White
+has temporarily gained a knight. The reply \chessmove{dxc6} removes the capturing
+bishop, leaving the material difference close to its initial value. A frontier
+placed between these two actions would expose an incomplete exchange to static
+evaluation. Equation~\eqref{eq:quiescence} addresses this situation by retaining
+legal captures in the tactical action set; a search reaching the intermediate
+position at its nominal horizon can therefore examine the recapture. At this
+intermediate position Black is not in check. Its static score remains a
+stand-pat candidate, and \chessmove{dxc6} belongs to $\Tactical(s)$. The tactical
+backup compares the static value with the negated successor value of each
+retained action.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{deployment-tactics.pdf}
+  \caption{A captured exchange after \chessmove{1. e4 e5 2. Nf3 Nc6 3. Bb5 a6}.
+  Arrows mark the human's \chessmove{4. Bxc6} and the engine's
+  \chessmove{4...dxc6}. Outlines follow the exchange square. Material differences
+  are shown from White's perspective in pawn units using the engine's piece
+  weights; they exclude positional terms. The sequence illustrates the
+  frontier issue addressed by tactical continuation.}
+  \label{fig:tactics}
+\end{figure}
+
+\begin{figure}[H]
+  \deploymentpair{deployment-endgame.pdf}{%
+    \paragraph{Phase-dependent evaluation.}
+    With only kings and White's three pawns present, both phase variables in
+    Equation~\eqref{eq:phase} equal one. The late king table is fully active,
+    and White's material lead activates the conversion term $W_c$. The engine
+    completes a depth-three search and plays \chessmove{Kd4}, leaving all three
+    pawns in place. The arrow identifies the king's advance on a board
+    oriented toward the human playing Black.
+  }{%
+    At this transition, material and pawn structure remain unchanged, while
+    king placement, central control, and conversion features change. Deeper
+    continuations also examine pawn advances and opposing king replies. The
+    phase and feature values are recomputed along those paths and combined
+    through negamax backups. The selected king move connects these late
+    positional preferences to a choice evaluated
+    \mbox{through the opponent's replies.}
+  }
+  \caption{King activity in a captured endgame decision. White moves from c3
+  to d4 while preserving its three pawns. The overlay identifies the action
+  evaluated under the late-game phase; the position illustrates the operating
+  context of the phase and conversion terms.}
+  \label{fig:endgame}
+\end{figure}
+
+Together, these cases make three choices in Algorithm~\ref{alg:decision}
+visible: selecting a covered opening action, resolving a tactical sequence,
+and searching with phase-dependent frontier values. They document the
+execution of the integrated engine. The contribution of each component to
+move quality remains a question for controlled comparisons at matched budgets.
+
+\FloatBarrier
 
 \section{Discussion and Limitations}
 \label{sec:limitations}
 
-The method has three main approximation limits. First, fixed positional features
+The decision procedure has three main approximation limits. First, fixed positional features
 provide incomplete information about long-term chess outcomes. Phase-dependent
 tables and structural bonuses encode selected preferences, and their weights
 require empirical assessment. Heuristic scores alone establish no playing
@@ -605,8 +824,9 @@ is outside this model.
 A completed deeper iteration supplies a new decision, with no guarantee that
 playing strength improves monotonically with depth. Empirical claims about
 strength, efficiency, and component interactions require controlled
-comparisons at matched resource budgets. The present paper establishes the
-method specification and the scope of its analytical properties.
+comparisons at matched resource budgets. The deployment trace establishes the
+sequence of completed decisions in one execution; the annotated positions
+document their application to the live game.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -617,9 +837,12 @@ alpha--beta uses bounds to avoid unnecessary expansion on a fixed tree.
 Tactical continuation, depth adjustments, ordering, and transposition reuse
 determine which continuations receive computation. Iterative deepening connects
 these components to an interruptible decision process, and the opening book
-supplies actions in covered early positions. The formulation makes the
-assumptions of each component explicit and provides a basis for subsequent
-empirical evaluation.
+supplies actions in covered early positions. The desktop deployment connects
+these decisions to a live game through state snapshots, clock-aware allowances,
+and validation before an action is applied. The formulation and captured
+execution make both the search assumptions and their operational consequences
+explicit. Controlled comparisons remain necessary to assess playing strength
+and the value of individual enhancements.
 
 \bibliographystyle{apalike}
 \bibliography{references}

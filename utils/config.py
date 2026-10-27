@@ -37,6 +37,8 @@ def validate_config(cfg: DictConfig):
         raise ValueError("engine.book_threshold must be between 0 and 1")
     if cfg.ui.mode not in {"human_ai", "ai_ai", "human_human"}:
         raise ValueError("Invalid ui.mode")
+    if cfg.appearance.name not in {"light", "dark"}:
+        raise ValueError("Invalid appearance")
     if cfg.ui.player_color not in {"white", "black"}:
         raise ValueError("ui.player_color must be white or black")
     if cfg.ui.base_seconds <= 0 or cfg.ui.increment_seconds < 0:
@@ -45,6 +47,10 @@ def validate_config(cfg: DictConfig):
         raise ValueError("Invalid board or sidebar dimensions")
     if cfg.ui.move_method not in {"both", "click", "drag"}:
         raise ValueError("ui.move_method must be both, click or drag")
+    if not 0 <= cfg.ui.annotation_opacity <= 1:
+        raise ValueError("ui.annotation_opacity must be between 0 and 1")
+    if type(cfg.ui.annotation_knight_bend) is not bool:
+        raise ValueError("ui.annotation_knight_bend must be a boolean")
     for name in ("max_premoves", "drag_threshold_px", "animation_ms", "premove_cost_ms"):
         if type(cfg.ui[name]) is not int:
             raise ValueError(f"ui.{name} must be an integer")

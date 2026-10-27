@@ -2,6 +2,7 @@ defaults:
   - engine: default
   - evaluation: default
   - ui: default
+  - appearance: dark
   - match: default
   - lichess: default
   - override hydra/job_logging: disabled

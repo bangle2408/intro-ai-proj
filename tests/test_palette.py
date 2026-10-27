@@ -1,5 +1,7 @@
 import pytest
 
+from utils.config import load_config
+
 
 def luminance(color):
     values = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
@@ -14,12 +16,14 @@ def luminance(color):
         ("muted", "background", 4.5),
         ("text", "surface", 4.5),
         ("text", "surface_alt", 4.5),
-        ("surface", "accent", 4.5),
+        ("primary_text", "accent", 4.5),
         ("light_square", "dark_square", 3),
         ("white_piece_border", "light_square", 3),
         ("black_piece_border", "dark_square", 3),
     ],
 )
-def test_palette_preserves_readability(cfg, foreground, background, minimum):
+@pytest.mark.parametrize("appearance", ["light", "dark"])
+def test_palette_preserves_readability(appearance, foreground, background, minimum):
+    cfg = load_config([f"appearance={appearance}"])
     a, b = sorted((luminance(cfg.ui[foreground]), luminance(cfg.ui[background])))
     assert (b + 0.05) / (a + 0.05) >= minimum

@@ -16,10 +16,12 @@ def source(piece_type, color):
 
 
 @lru_cache(maxsize=96)
-def renderer(piece_type, color, fill, edge):
+def renderer(piece_type, color, fill, edge, outline=0.65):
     original = ("#FFFCF5", "#344A3B") if color else ("#293E32", "#F7F3E7")
     svg = source(piece_type, color).replace(original[0], "@fill@").replace(original[1], "@edge@")
     svg = svg.replace("@fill@", fill).replace("@edge@", edge)
+    if not color:
+        svg = svg.replace('stroke-width="0.65"', f'stroke-width="{outline}"')
     return QSvgRenderer(QByteArray(svg.encode()))
 
 
@@ -29,17 +31,19 @@ def draw_piece(painter, piece, rect, cfg):
     height = min(rect.height(), rect.width() * 110 / 80)
     width = height * 80 / 110
     target = QRectF(rect.center().x() - width / 2, rect.bottom() - height, width, height)
-    renderer(piece.piece_type, piece.color, fill, edge).render(painter, target)
+    renderer(piece.piece_type, piece.color, fill, edge, cfg.black_piece_outline).render(
+        painter, target
+    )
 
 
 @lru_cache(maxsize=192)
-def piece_pixmap(piece_type, color, size, ratio, fill, edge):
+def piece_pixmap(piece_type, color, size, ratio, fill, edge, outline=0.65):
     pixmap = QPixmap(round(size * ratio), round(size * ratio))
     pixmap.setDevicePixelRatio(ratio)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     width = size * 80 / 110
-    renderer(piece_type, color, fill, edge).render(
+    renderer(piece_type, color, fill, edge, outline).render(
         painter, QRectF((size - width) / 2, 0, width, size)
     )
     painter.end()
@@ -49,7 +53,9 @@ def piece_pixmap(piece_type, color, size, ratio, fill, edge):
 def piece_icon(piece, cfg, size=28):
     fill = cfg.white_piece if piece.color else cfg.black_piece
     edge = cfg.white_piece_border if piece.color else cfg.black_piece_border
-    return QIcon(piece_pixmap(piece.piece_type, piece.color, size, 2, fill, edge))
+    return QIcon(
+        piece_pixmap(piece.piece_type, piece.color, size, 2, fill, edge, cfg.black_piece_outline)
+    )
 
 
 class CapturedPieces(QWidget):
@@ -81,9 +87,15 @@ class CapturedPieces(QWidget):
             return
         step = min(15, max(0, (self.width() - 16) / max(1, len(self.pieces) - 1)))
         for index, piece in enumerate(self.pieces):
-            fill = self.cfg.white_piece if piece.color else self.cfg.black_piece
-            edge = self.cfg.white_piece_border if piece.color else self.cfg.black_piece_border
+            fill = self.cfg.white_piece if piece.color else self.cfg.captured_black
+            edge = self.cfg.white_piece_border if piece.color else self.cfg.background
             pixmap = piece_pixmap(
-                piece.piece_type, piece.color, 20, self.devicePixelRatioF(), fill, edge
+                piece.piece_type,
+                piece.color,
+                20,
+                self.devicePixelRatioF(),
+                fill,
+                edge,
+                self.cfg.black_piece_outline,
             )
             painter.drawPixmap(round(index * step), 0, pixmap)

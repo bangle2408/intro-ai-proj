@@ -2,12 +2,13 @@ import chess
 from PyQt5.QtCore import QRectF, Qt, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
+from ui.annotations import BoardAnnotations
 from ui.board_animation import BoardAnimation
 from ui.board_paint import BoardPainting
 from ui.board_pointer import BoardPointer
 
 
-class BoardView(BoardPointer, BoardPainting, BoardAnimation, QWidget):
+class BoardView(BoardPointer, BoardPainting, BoardAnimation, BoardAnnotations, QWidget):
     pressed = pyqtSignal(int)
     clicked = pyqtSignal(int)
     dropped = pyqtSignal(int, int)
@@ -27,6 +28,7 @@ class BoardView(BoardPointer, BoardPainting, BoardAnimation, QWidget):
         self.targets = set()
         self.queued_squares = set()
         self.surface = None
+        self.setup_annotations()
         self.setup_animation()
         self.setMinimumSize(320, 320)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -53,6 +55,8 @@ class BoardView(BoardPointer, BoardPainting, BoardAnimation, QWidget):
         return QRectF(x + col * cell, y + row * cell, cell, cell)
 
     def sync(self, position, preview, plans, movable, targets):
+        if self.position != position:
+            self.clear_annotations()
         self.position = position.copy(stack=True)
         self.board = preview
         self.movable = movable

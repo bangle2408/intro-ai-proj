@@ -18,7 +18,12 @@ class BoardPointer:
     def mousePressEvent(self, event):
         self.setFocus(Qt.MouseFocusReason)
         if event.button() == Qt.RightButton:
-            self.cancelled.emit()
+            self.begin_drawing(event)
+            return
+        if event.button() == Qt.LeftButton:
+            self.clear_annotations()
+        if event.buttons() & Qt.RightButton:
+            self.reset_pointer()
             return
         if event.button() != Qt.LeftButton or not self.input_enabled:
             return
@@ -41,6 +46,9 @@ class BoardPointer:
             )
 
     def mouseMoveEvent(self, event):
+        if self.drawing:
+            self.track_drawing(event)
+            return
         gesture = self.gesture
         if gesture and self.cfg.move_method != "click":
             if not event.buttons() & Qt.LeftButton:
@@ -60,6 +68,9 @@ class BoardPointer:
         self.setCursor(cursor)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.finish_drawing(event)
+            return
         if event.button() != Qt.LeftButton:
             return
         if self.gesture and self.cfg.move_method != "click":
@@ -91,6 +102,7 @@ class BoardPointer:
             self.invalidate_board()
 
     def reset_pointer(self):
+        self.drawing = None
         self.gesture = None
         self.press_square = None
         self.unsetCursor()
@@ -98,6 +110,7 @@ class BoardPointer:
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
+            self.clear_annotations()
             self.cancelled.emit()
         else:
             super().keyPressEvent(event)

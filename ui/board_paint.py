@@ -21,6 +21,7 @@ class BoardPainting:
         painter.setRenderHint(QPainter.Antialiasing)
         painter.drawPixmap(0, 0, self.surface)
         self.paint_motion(painter)
+        self.paint_annotations(painter)
 
     def paint_board(self, painter):
         _, _, cell = self.geometry_values()

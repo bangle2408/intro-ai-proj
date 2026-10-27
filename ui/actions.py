@@ -81,6 +81,7 @@ class GameActions:
         self.board_view.invalidate_board()
         self.refresh_clocks()
         self.refresh_captured()
+        self.refresh_evaluation()
 
     def save(self):
         path, _ = QFileDialog.getSaveFileName(

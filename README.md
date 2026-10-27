@@ -18,7 +18,11 @@ python game.py
 - **New game:** chọn chế độ, màu quân và đồng hồ.
 - Kéo thả hoặc click quân rồi click ô đích để đi.
 - Đặt trước nước đi (premove) khi AI đang nghĩ; chuột phải hoặc **Esc** để hủy.
+- Giữ chuột phải và kéo để vẽ mũi tên; click phải để khoanh ô. Vẽ lại để xóa riêng,
+  click trái hoặc **Esc** để xóa hết. Giữ **Ctrl / Alt / Shift** để đổi màu.
 - **Preferences:** chỉnh độ khó, cách di chuyển và hiển thị.
+- **Appearance:** chuyển sáng/tối. Thanh cạnh bàn cờ biểu thị ưu thế Trắng/Đen;
+  bật/tắt trong **Preferences → Evaluation bar**.
 - **Undo / Flip:** đi lại nước trước hoặc lật bàn cờ.
 - **⋯:** lưu, tải ván cờ và đầu hàng.
 

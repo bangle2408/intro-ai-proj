@@ -8,13 +8,17 @@ def apply_theme(app, cfg):
     for role, color in (
         (QPalette.Window, cfg.background),
         (QPalette.Base, cfg.surface),
+        (QPalette.Button, cfg.surface),
+        (QPalette.AlternateBase, cfg.surface_alt),
         (QPalette.Text, cfg.text),
         (QPalette.WindowText, cfg.text),
         (QPalette.ButtonText, cfg.text),
         (QPalette.Highlight, cfg.accent),
-        (QPalette.HighlightedText, cfg.surface),
+        (QPalette.HighlightedText, cfg.primary_text),
     ):
         palette.setColor(role, QColor(color))
+    for role in (QPalette.WindowText, QPalette.Text, QPalette.ButtonText):
+        palette.setColor(QPalette.Disabled, role, QColor(cfg.muted))
     app.setPalette(palette)
     app.setStyleSheet(f'''
         QWidget {{ color: {cfg.text}; font-family: "{cfg.font}"; font-size: 14px; }}
@@ -35,8 +39,9 @@ def apply_theme(app, cfg):
         QPushButton:pressed {{ background: {cfg.border}; }}
         QPushButton:focus {{ border: 1px solid {cfg.focus}; }}
         QPushButton:disabled {{ color: {cfg.muted}; }}
-        QPushButton#primary {{ background: {cfg.accent}; color: {cfg.surface}; padding: 9px 18px; }}
-        QPushButton#primary:hover {{ background: {cfg.text}; }}
+        QPushButton#quiet:checked {{ background: {cfg.surface_alt}; }}
+        QPushButton#primary {{ background: {cfg.accent}; color: {cfg.primary_text}; padding: 9px 18px; }}
+        QPushButton#primary:hover {{ background: {cfg.accent_hover}; }}
         QPushButton#segment {{ border: 1px solid {cfg.border}; padding: 8px 10px; }}
         QPushButton#segment:checked {{ background: {cfg.surface_alt}; border-color: {cfg.accent}; }}
         QPushButton::menu-indicator {{ image: none; width: 0; }}

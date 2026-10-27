@@ -27,14 +27,16 @@ class GameView:
         self.panel.summary.setText(f"{modes[self.cfg.ui.mode]}  ·  {clock}")
         self.panel.history.set_board(self.position)
         self.refresh_status()
-        show = self.cfg.ui.show_evaluation
-        self.panel.evaluation.setVisible(show)
-        if show:
-            score = self.evaluator.evaluate(self.position) * (1 if self.position.turn else -1)
-            self.panel.evaluation.setText(f"Position estimate  {score / 100:+.2f}")
+        self.refresh_evaluation()
         self.refresh_captured()
         self.panel.buttons["Undo"].setEnabled(self.undo_count() > 0)
         self.panel.resign_action.setEnabled(self.active and self.cfg.ui.mode != "ai_ai")
+
+    def refresh_evaluation(self):
+        self.canvas.set_evaluation_visible(self.cfg.ui.show_evaluation)
+        if self.cfg.ui.show_evaluation:
+            score = self.evaluator.evaluate(self.position) * (1 if self.position.turn else -1)
+            self.evaluation_bar.set_position(score, self.board_view.flipped, self.result)
 
     def refresh_status(self):
         side = "White" if self.position.turn else "Black"

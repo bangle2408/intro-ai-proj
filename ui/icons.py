@@ -1,5 +1,7 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from math import cos, pi, sin
+
+from PyQt5.QtCore import QPointF, QRectF, Qt
+from PyQt5.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 
 
 def icon(name, color):
@@ -34,5 +36,18 @@ def icon(name, color):
         painter.setPen(Qt.NoPen)
         for x in (5, 10, 15):
             painter.drawEllipse(x - 1, 9, 2, 2)
+    elif name == "sun":
+        painter.drawEllipse(6, 6, 8, 8)
+        for index in range(8):
+            angle = index * pi / 4
+            painter.drawLine(
+                QPointF(10 + cos(angle) * 7, 10 + sin(angle) * 7),
+                QPointF(10 + cos(angle) * 9, 10 + sin(angle) * 9),
+            )
+    elif name == "moon":
+        outer, inner = QPainterPath(), QPainterPath()
+        outer.addEllipse(QRectF(3, 3, 14, 14))
+        inner.addEllipse(QRectF(8, 0, 13, 13))
+        painter.drawPath(outer.subtracted(inner))
     painter.end()
     return QIcon(image)

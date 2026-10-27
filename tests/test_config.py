@@ -29,6 +29,9 @@ def test_composition_inside_running_hydra():
         "ui.premove_cost_ms=-1",
         "ui.drag_threshold_px=0",
         "ui.max_premoves=1.5",
+        "ui.annotation_opacity=-0.1",
+        "ui.annotation_opacity=1.1",
+        "ui.annotation_knight_bend=unknown",
     ],
 )
 def test_invalid_config_fails_early(override):

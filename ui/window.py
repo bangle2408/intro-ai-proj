@@ -5,10 +5,12 @@ from PyQt5.QtWidgets import QMainWindow, QWidget
 from core.evaluation import Evaluation
 from core.position import make_board
 from ui.actions import GameActions
+from ui.appearance import GameAppearance
 from ui.board import BoardView
 from ui.clock import ChessClock
 from ui.controls import ControlPanel
 from ui.engine_process import EngineProcess
+from ui.evaluation_bar import EvaluationBar
 from ui.input import GameInput
 from ui.layout import Header, MatchCanvas
 from ui.moves import GameMoves
@@ -17,10 +19,10 @@ from ui.premoves import PremoveQueue
 from ui.view import GameView
 
 
-class ChessWindow(GameActions, GameInput, GameMoves, GameView, QMainWindow):
+class ChessWindow(GameActions, GameAppearance, GameInput, GameMoves, GameView, QMainWindow):
     def __init__(self, cfg):
         super().__init__()
-        self.cfg = OmegaConf.create(OmegaConf.to_container(cfg, resolve=True))
+        self.cfg = OmegaConf.create(OmegaConf.to_container(cfg, resolve=False))
         self.evaluator = Evaluation(self.cfg.evaluation)
         self.search = EngineProcess(self.cfg, self)
         self.search.closed.connect(self.close, Qt.QueuedConnection)
@@ -48,10 +50,11 @@ class ChessWindow(GameActions, GameInput, GameMoves, GameView, QMainWindow):
 
     def build_layout(self):
         self.board_view = BoardView(self.cfg.ui)
+        self.evaluation_bar = EvaluationBar(self.cfg.ui)
         self.board_view.pressed.connect(self.begin_selection)
         self.board_view.clicked.connect(self.select_square)
         self.board_view.dropped.connect(self.drop_piece)
-        self.board_view.cancelled.connect(self.clear_input)
+        self.board_view.cancelled.connect(lambda: self.clear_input(annotations=False))
         self.top_player = PlayerRow(self.cfg.ui)
         self.bottom_player = PlayerRow(self.cfg.ui)
         self.panel = ControlPanel(self.cfg, self)
@@ -63,6 +66,7 @@ class ChessWindow(GameActions, GameInput, GameMoves, GameView, QMainWindow):
             self.top_player,
             self.bottom_player,
             self.panel,
+            self.evaluation_bar,
         )
         self.setCentralWidget(self.canvas)
         for widget in (self, *self.findChildren(QWidget)):

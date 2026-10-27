@@ -21,7 +21,7 @@ class PreferencesDialog(BaseDialog):
         self.destinations = self.toggle("Show legal moves", cfg.ui.show_destinations)
         self.queen = self.toggle("Auto-queen", cfg.ui.auto_queen)
         self.motion = self.toggle("Piece animation", cfg.ui.animation_ms > 0)
-        self.evaluation = self.toggle("Show position estimate", cfg.ui.show_evaluation)
+        self.evaluation = self.toggle("Evaluation bar", cfg.ui.show_evaluation)
         self.advanced = QPushButton("Advanced search settings")
         self.advanced.setObjectName("quiet")
         self.advanced.setCheckable(True)

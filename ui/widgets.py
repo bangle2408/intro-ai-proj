@@ -19,10 +19,14 @@ class ActionButton(QPushButton):
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName(title)
         self.setObjectName("primary" if primary else "quiet")
-        if symbol:
-            self.setIcon(icon(symbol, cfg.surface if primary else cfg.text))
+        self.symbol, self.primary = symbol, primary
+        self.update_icon(cfg)
         if action:
             self.clicked.connect(action)
+
+    def update_icon(self, cfg):
+        if self.symbol:
+            self.setIcon(icon(self.symbol, cfg.primary_text if self.primary else cfg.text))
 
 
 class Toggle(QAbstractButton):
@@ -42,9 +46,11 @@ class Toggle(QAbstractButton):
         painter.setPen(Qt.NoPen)
         if not self.isEnabled():
             painter.setOpacity(0.45)
-        painter.setBrush(QColor(self.cfg.accent if self.isChecked() else "#7E8D82"))
+        painter.setBrush(QColor(self.cfg.accent if self.isChecked() else self.cfg.switch_off))
         painter.drawRoundedRect(3, 6, 38, 20, 10, 10)
-        painter.setBrush(QColor(self.cfg.surface))
+        painter.setBrush(
+            QColor(self.cfg.primary_text if self.isChecked() else self.cfg.switch_thumb)
+        )
         painter.drawEllipse(23 if self.isChecked() else 5, 8, 16, 16)
         if self.hasFocus():
             painter.setBrush(Qt.NoBrush)

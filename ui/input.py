@@ -107,8 +107,10 @@ class GameInput:
         accepted = dialog.exec_() == QDialog.Accepted
         return dialog.piece.currentData() if accepted and generation == self.generation else None
 
-    def clear_input(self):
+    def clear_input(self, annotations=True):
         self.premoves.clear()
+        if annotations:
+            self.board_view.clear_annotations()
         self.board_view.reset_pointer()
         self.board_view.selected = None
         self.board_view.stop_animation()

@@ -16,7 +16,7 @@ def test_board_is_playable_without_start_or_pause(window):
         "Pause" in button.text() or "Start" in button.text()
         for button in window.findChildren(QPushButton)
     )
-    assert window.panel.evaluation.isHidden()
+    assert not window.evaluation_bar.isHidden()
     assert window.top_player.clock.isHidden()
     assert window.bottom_player.clock.isHidden()
     click_square(window, "e2")
@@ -87,7 +87,7 @@ def test_preferences_change_real_input_and_strength(window):
     QTest.mouseClick(window.header.preferences, Qt.LeftButton)
     assert window.cfg.engine.depth == 8 and window.cfg.engine.time_ms == 12000
     assert not window.cfg.ui.premoves and window.cfg.ui.animation_ms == 0
-    assert not window.panel.evaluation.isHidden()
+    assert not window.evaluation_bar.isHidden()
     click_square(window, "e2")
     click_square(window, "e4")
     assert not window.position.move_stack

@@ -1,0 +1,515 @@
+\documentclass[10pt,letterpaper]{article}
+
+% Compile from this directory with: latexmk -pdf proposal.tex
+% Typography follows paper/main.tex. This is a project proposal, with no
+% conference affiliation, review banner, or submission line numbering.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage[letterpaper,textwidth=5.5in,textheight=9in,top=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{microtype}
+\usepackage{needspace}
+\usepackage{etoolbox}
+\usepackage[round,authoryear]{natbib}
+\usepackage[hidelinks,pdfusetitle]{hyperref}
+
+\makeatletter
+\renewcommand\normalsize{\@setfontsize\normalsize{10pt}{11pt}}
+\renewcommand\small{\@setfontsize\small{9pt}{10pt}}
+\renewcommand\section{\@startsection{section}{1}{\z@}
+  {-2.0ex plus -.4ex minus -.2ex}{1.2ex plus .2ex}
+  {\large\scshape\raggedright}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}
+  {-1.8ex plus -.4ex minus -.2ex}{.8ex plus .2ex}
+  {\normalsize\scshape\raggedright}}
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}
+  {1.2ex plus .3ex minus .2ex}{-1em}{\normalsize\bfseries}}
+\renewcommand\maketitle{%
+  \begin{center}
+    {\fontsize{17}{20}\selectfont\scshape\@title\par}
+  \end{center}\vspace{.2em}}
+\makeatother
+\normalsize
+
+\renewenvironment{abstract}
+  {\begin{center}\scshape Abstract\end{center}\begin{quote}\small}
+  {\end{quote}\vspace{.3em}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt}
+\setlength{\abovedisplayskip}{6pt plus 1pt minus 1pt}
+\setlength{\belowdisplayskip}{6pt plus 1pt minus 1pt}
+\setlength{\abovedisplayshortskip}{3pt plus 1pt}
+\setlength{\belowdisplayshortskip}{4pt plus 1pt}
+\setlength{\bibsep}{4pt plus 1pt}
+\setcitestyle{citesep={;},aysep={,},yysep={;}}
+\renewcommand{\bibsection}{\section*{References}}
+\widowpenalty=10000
+\clubpenalty=10000
+% Keep complete prose paragraphs on one page, including bibliography entries.
+\interlinepenalty=10000
+\interdisplaylinepenalty=10000
+\binoppenalty=10000
+\relpenalty=10000
+\displaywidowpenalty=10000
+\brokenpenalty=10000
+\predisplaypenalty=10000
+\postdisplaypenalty=10000
+% Reserve a substantial final line instead of leaving one or two short words.
+\setlength{\parfillskip}{0pt plus .55\linewidth}
+\setlength{\emergencystretch}{2em}
+\finalhyphendemerits=1000000
+\raggedbottom
+\pretocmd{\section}{\Needspace{7\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{6\baselineskip}}{}{}
+\pretocmd{\paragraph}{\Needspace{5\baselineskip}}{}{}
+\AtBeginEnvironment{thebibliography}{%
+  \small
+  \interlinepenalty=10000
+  \setlength{\parfillskip}{0pt plus .55\linewidth}}
+
+\newcommand{\States}{\mathcal S}
+\newcommand{\Actions}{\mathcal A}
+\newcommand{\Terminal}{\mathcal Z}
+\newcommand{\ind}{\mathbf 1}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% Box each mathematical argument as one indivisible page-layout block.
+\newenvironment{keepblock}
+  {\par\noindent\begin{minipage}{\linewidth}%
+   \setlength{\parskip}{5pt plus 1pt}%
+   \setlength{\parfillskip}{0pt plus .55\linewidth}}
+  {\end{minipage}\par}
+
+\title{Adversarial Search for a Chess Application\\under Computational Constraints}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\begin{center}\small Project Proposal\end{center}
+\begin{abstract}
+This project proposes a chess-playing system to study computational effort
+and tactical decisions under depth and time limits. A fixed positional
+evaluator will support minimax in negamax form, with alpha--beta pruning
+and iterative deepening. Functional checks will precede a fixed-depth
+comparison of minimax and alpha--beta and an evaluation of tactical
+reference agreement under three time budgets. The planned dataset comprises
+200 development and 1,000 held-out positions, equally divided between
+tactical puzzles and positions from recorded games. Search complexity
+will be analyzed separately from measured node counts, completed depth,
+elapsed time, and tactical accuracy. These measurements will characterize
+the proposed system's computational cost and tactical performance on
+a personal laptop.
+\end{abstract}
+\begin{keepblock}
+\section{Problem Statement}\label{sec:problem}
+\subsection{Context and Objectives}
+Selecting a chess move requires anticipating the opponent's replies.
+Game-tree search models these continuations, while a heuristic evaluator
+estimates positions at the search frontier \citep{shannon1950}.
+The number of continuations grows rapidly with depth, making exhaustive
+search impractical for many positions.
+\end{keepblock}
+
+Existing engines already achieve strong chess play. Stockfish, for example,
+uses alpha--beta search with neural-network evaluation
+\citep{stockfishdocs}. The proposed system will use a fixed heuristic
+evaluator to support a controlled comparison of minimax and alpha--beta.
+The study will measure pruning savings and the effect of additional
+search time on completed depth and tactical move selection.
+\begin{keepblock}
+\subsection{Mathematical Formulation}
+Let $\States$ be the set of standard-chess states. Represent a state as
+
+\begin{equation}
+s=(B,c,\mathcal R,\varepsilon,\nu,H)\in\States,
+\label{eq:state}
+\end{equation}
+
+where $B$ is the board, $c=c(s)$ the player to move, $\mathcal R$ the
+castling rights, $\varepsilon$ the en-passant information, $\nu$ the move
+counters (half-move and full-move), and $H$ the history needed for
+repetition rules. Let $\Actions(s)$
+be the legal moves, $T(s,a)$ the deterministic successor, and $\Terminal$
+the terminal states under the adopted game rules. A ply is one player's move.
+\end{keepblock}
+
+Given a nonterminal state, a maximum depth $D\ge1$, and a time allowance $\tau>0$,
+the task is to return a legal move $\hat a\in\Actions(s)$ based on the
+adversarial continuations that can be examined. Terminal states produce a
+game outcome rather than a move. The underlying objective is the terminal
+win--draw--loss outcome; finite search approximates it through heuristic
+evaluation. Repetition history must be stored separately from FEN
+(Forsyth--Edwards Notation) or reconstructed from PGN (Portable Game
+Notation) \citep{pythonchess}.
+\begin{keepblock}
+\section{Proposed Solution}\label{sec:solution}
+\subsection{Positional Evaluation}
+The proposed evaluator will combine material, piece placement, pawn
+structure, and king safety. Material features will count pieces by type;
+positional features will describe square occupancy, isolated or doubled
+pawns, and king exposure. These quantities will be represented as
+differences between the two sides so that a positive score favors the
+player to move.
+\end{keepblock}
+
+\begin{keepblock}
+Let $f_j(s,p)$ measure feature $j$ for player $p$, and let $\bar c(s)$ be
+the opponent of $c(s)$. Define the relative feature and evaluation by
+
+\begin{equation}
+\phi_j(s)=f_j(s,c(s))-f_j(s,\bar c(s)),\qquad
+E_\theta(s)=\sum_{j=1}^{m}\theta_j\phi_j(s).
+\label{eq:evaluation}
+\end{equation}
+
+Here $m$ is the number of features and $\theta\in\mathbb R^m$ contains
+their weights. Feature definitions and weights will be selected using
+development positions and fixed before held-out evaluation.
+\end{keepblock}
+
+For terminal states, let $u(s)=-M$ when the player to move is checkmated
+and $u(s)=0$ for a draw. The scale will satisfy
+$M>\sup_{s\notin\Terminal}|E_\theta(s)|$, ensuring that checkmate scores
+dominate heuristic values. Both methods will apply the same
+draw-adjudication policy, fixed before evaluation.
+
+\begin{keepblock}
+\subsection{Minimax in Negamax Form}
+Minimax evaluates each action under the assumption that the opponent
+chooses its best reply. Chess is an alternating, two-player zero-sum game:
+an advantage for one side is a disadvantage for the other. Consequently,
+the identity $\min_x g(x)=-\max_x[-g(x)]$ allows both players' decisions
+to be expressed by the same maximization rule with a sign change.
+\end{keepblock}
+
+\begin{keepblock}
+Let $V_d(s)$ denote the depth-limited value from the perspective of the
+player to move, with remaining depth $d\ge0$. The negamax recurrence is
+
+\begin{equation}
+V_d(s)=\begin{cases}
+u(s),&s\in\Terminal,\\
+E_\theta(s),&s\notin\Terminal,\ d=0,\\
+\displaystyle\max_{a\in\Actions(s)}[-V_{d-1}(T(s,a))],&\text{otherwise}.
+\end{cases}
+\label{eq:value}
+\end{equation}
+
+Terminal states are evaluated before the depth limit. At a nonterminal
+leaf, $E_\theta$ replaces the unknown game outcome. At an internal node,
+the successor value is negated because $T(s,a)$ changes the player to move.
+Thus each search layer chooses the best continuation for its own side.
+\end{keepblock}
+
+\begin{keepblock}
+For a nonterminal root and $d\ge1$, the decision rule is
+
+\begin{equation}
+a_d\in\argmax_{a\in\Actions(s)}[-V_{d-1}(T(s,a))].
+\label{eq:action}
+\end{equation}
+
+Ties will favor the first maximizing move in the search order.
+Equation~\ref{eq:action} selects
+an optimal move for the depth-limited model defined by
+Equation~\ref{eq:value}.
+\end{keepblock}
+
+\begin{keepblock}
+\subsection{Alpha--Beta Pruning}
+Alpha--beta will evaluate the same recurrence while avoiding branches
+whose remaining alternatives cannot improve the relevant ancestor's
+decision. A search window $(\alpha,\beta)$, with $\alpha<\beta$, records the lower
+threshold and the cutoff threshold for the player at that node. The best
+value found so far, $v$, starts at $-\infty$. Write
+$W_d(s;\alpha,\beta)$ for the value returned by windowed negamax.
+\end{keepblock}
+
+\begin{keepblock}
+Each legal action at positive remaining depth gives the candidate score
+
+\begin{equation}
+q_a=-W_{d-1}(T(s,a);-\beta,-\alpha).
+\label{eq:window}
+\end{equation}
+
+After each call, set $v\leftarrow\max(v,q_a)$ and
+$\alpha\leftarrow\max(\alpha,v)$; prune the remaining actions if
+$\alpha\ge\beta$. The call returns $v$ after a cutoff or after all
+actions are examined. The reversed signs in Equation~\ref{eq:window}
+switch the perspective to the opponent. Terminal and depth-zero calls
+use the same $u$ and $E_\theta$ as minimax.
+\end{keepblock}
+
+\begin{keepblock}
+A cutoff may return a bound rather than an exact internal-node value.
+A completed root call with an unrestricted window, however, satisfies
+
+\begin{equation}
+W_d(s;-\infty,+\infty)=V_d(s).
+\label{eq:equivalence}
+\end{equation}
+
+This equivalence requires identical horizons, evaluation, and terminal
+rules \citep{knuth1975}. Move ordering
+affects the amount of pruning, so the controlled comparison will give
+both methods the same ordering and disable additional search enhancements.
+\end{keepblock}
+
+\begin{keepblock}
+\subsection{Iterative Deepening and Decision Output}
+The proposed engine will run alpha--beta at depths $1,2,\ldots,D$,
+preserving the root move from each completed iteration. A promising move
+from the preceding iteration may be searched first in the next iteration.
+This ordering supports the timed engine; it will be excluded from the
+separate experiment that isolates fixed-depth pruning.
+\end{keepblock}
+
+\begin{keepblock}
+Let $t_d$ be the cumulative elapsed search time when iteration $d$
+finishes, with $t_d=+\infty$ for unfinished iterations. If at least
+one iteration completes within $\tau$, return
+
+\begin{equation}
+d^\star=\max\{d\in\{1,\ldots,D\}:t_d\le\tau\},\qquad
+\hat a=a_{d^\star}.
+\label{eq:iterative}
+\end{equation}
+
+Only completed iterations will update the decision. If none finishes in
+time, a predetermined legal move will be returned with completed depth
+zero. Each query will record the move, completed depth, total visited
+nodes including interrupted work, and elapsed time.
+\end{keepblock}
+
+Python is proposed for the search and experiments, with
+\texttt{python-chess} handling legal moves and FEN/PGN data
+\citep{pythonchess}. The project will implement the evaluator and search
+procedure. A playable application will provide the human--AI interaction,
+while the experiments will invoke the same search procedure directly.
+\begin{keepblock}
+\subsection{Data and Sampling}
+The dataset will contain 200 development and 1,000 held-out positions from
+the Lichess open database \citep{lichessdata}, equally divided between
+tactical puzzles and PGN game positions in each split. Puzzles provide
+reference moves; game positions broaden the search workload. Evaluation
+puzzles will be balanced across rating quartiles of a frozen pool.
+Each evaluation game position will be sampled from a different game
+using a recorded random seed.
+\end{keepblock}
+
+Only legal, nonterminal positions will be included. Applying a puzzle's
+first listed move to its FEN yields the solver's state; the second move
+begins the solution. Any immediate checkmate will be accepted for
+mate-in-one puzzles. Development and evaluation sets will share neither
+source games nor duplicate positions. Source identifiers and sampling
+seeds will be recorded, available histories preserved, and missing
+pre-FEN history documented. Parameters and selection rules will be
+fixed before held-out evaluation.
+\begin{keepblock}
+\subsection{Experimental Design}
+\paragraph{Functional verification.}
+Tests will cover legal replies, checkmate and draw handling, castling,
+en passant, promotion, search interruption, and the human--AI playing
+workflow. Automatic draws and claimable draws will be distinguished
+under the selected protocol. These checks assess application behavior
+separately from performance or tactical accuracy.
+\end{keepblock}
+
+\begin{keepblock}
+\paragraph{Controlled pruning comparison.}
+Minimax and alpha--beta will process the 500 PGN positions directly at
+depths $d\in\{2,3\}$, with $R=3$ repetitions and a safety allowance of
+$2000$\,ms per query. Both methods will use identical evaluation, move
+order, and terminal rules. Nodes will count entered search calls,
+including the root and leaves. Completed root values must agree before
+computational savings are compared. Other search enhancements will be
+disabled to isolate pruning. Development runs will check feasibility
+before settings are frozen; repetitions will measure timing variability.
+\end{keepblock}
+
+\begin{keepblock}
+Let $\mathcal I_d$ index positions where both methods complete every
+repetition, and $N_i^A(d)$ be the median visited-node count for method
+$A\in\{\mathrm{MM},\mathrm{AB}\}$. The work ratio is
+
+\begin{equation}
+R_N(d)=\frac{\sum_{i\in\mathcal I_d}N_i^{\mathrm{MM}}(d)}
+{\sum_{i\in\mathcal I_d}N_i^{\mathrm{AB}}(d)},\qquad\mathcal I_d\ne\varnothing.
+\label{eq:ratio}
+\end{equation}
+
+A ratio above one indicates fewer nodes for alpha--beta on the completed
+pairs. Elapsed time and completion rates on the full set will accompany
+the ratio, since incomplete queries are excluded from $\mathcal I_d$.
+\end{keepblock}
+
+\begin{keepblock}
+\paragraph{Time-budgeted move selection.}
+The proposed engine will process all 1,000 evaluation positions with
+$\tau\in\{100,500,1000\}$\,ms and $R=3$ repetitions. Queries will run
+sequentially on one laptop, with hardware and software versions recorded
+and search state reset between queries. The maximum depth $D$ will be
+selected on development positions and fixed before evaluation.
+\end{keepblock}
+
+\begin{keepblock}
+For puzzle $i$, let $\Actions_i^{\mathrm{ref}}$ contain the
+reference move or all immediate mating moves when applicable, and let
+$\hat a_{i,r}(\tau)$ be the move returned in repetition $r$. A failed
+query is assigned the symbol $\bot$, which belongs to no reference set.
+Accuracy is
+
+\begin{equation}
+\operatorname{Acc}(\tau)=\frac{1}{500R}\sum_{i=1}^{500}\sum_{r=1}^{R}
+\ind\{\hat a_{i,r}(\tau)\in\Actions_i^{\mathrm{ref}}\}.
+\label{eq:accuracy}
+\end{equation}
+
+Here $\ind\{\cdot\}$ is one for a reference match and zero otherwise.
+Failed queries count as incorrect and will also be reported separately.
+Repeated runs do not add independent puzzles. For each budget, the report
+will include completed depth, total nodes, median and 95th-percentile
+elapsed time, and overruns. Accuracy measures agreement on the sampled puzzles,
+not a playing-strength rating.
+\end{keepblock}
+\begin{keepblock}
+\section{Benefits}\label{sec:benefits}
+The system will allow deliberation time to be adjusted on a personal
+laptop while keeping a legal response available. Alpha--beta is expected
+to reduce node visits relative to unpruned minimax while preserving the
+completed fixed-depth value. Iterative deepening will retain a completed
+decision when further search must stop, making deeper search compatible
+with interactive play.
+\end{keepblock}
+
+The experiments will quantify the cost of searching deeper and the
+tactical performance obtained under each time allowance. Preserved
+positions, fixed evaluation settings, and recorded outputs will support
+reproducible comparisons. Examining failures alongside reached depth
+and node counts will document tactical limitations and guide later
+changes to the search or evaluator.
+\begin{keepblock}
+\section{Computational Complexity and Risks}\label{sec:resources}
+\subsection{Time Complexity}
+Let $b\ge2$ be the branching factor of a full uniform game tree and $d$ the
+search depth. Assuming constant processing cost per node, minimax and
+worst-case alpha--beta have time complexity
+
+\begin{equation}
+T_{\mathrm{MM}}(b,d)=O(b^d),\qquad
+T_{\mathrm{AB,worst}}(b,d)=O(b^d).
+\label{eq:worst}
+\end{equation}
+\end{keepblock}
+
+\begin{keepblock}
+With ideal move ordering, alpha--beta evaluates the following minimal
+number of leaves \citep{knuth1975}:
+
+\begin{equation}
+L_{\mathrm{AB,best}}(b,d)
+=b^{\lceil d/2\rceil}+b^{\lfloor d/2\rfloor}-1.
+\label{eq:best}
+\end{equation}
+
+For fixed $b$, this yields best-case time $O(b^{\lceil d/2\rceil})$,
+or $O(b^{d/2})$ for even depths. Actual pruning depends on move ordering.
+\end{keepblock}
+
+The repeated searches of iterative deepening retain worst-case cost
+$O(b^d)$ because the deepest iteration dominates the geometric sum.
+Elapsed time also depends on move generation, evaluation, and state
+restoration, so it will be reported alongside node counts.
+
+\begin{keepblock}
+\subsection{Space Complexity}
+With depth-first traversal and up to $b$ candidate moves retained per
+active level, both methods use $O(bd)$ auxiliary search memory; the
+recursion stack alone is $O(d)$. This assumes incremental move application
+and restoration, excluding input histories and stored results.
+\end{keepblock}
+
+\begin{keepblock}
+\subsection{Risks and Mitigation}
+Finite horizons may miss tactical continuations, while deeper search
+may delay responses. Iterative deepening, time checks, and a legal fallback
+will control deliberation; completed depth, tactical accuracy, and
+time overruns will be reported.
+\end{keepblock}
+
+Incorrect bounds or state restoration may change search results.
+Agreement with unpruned minimax, legal-move checks, and restoration tests
+will address these risks. Search will run separately from interface
+handling to preserve responsiveness.
+
+Shared source games and duplicate positions may bias evaluation;
+game-level separation and duplicate checks will control this risk.
+Repetition detection will use only recorded history, with the same
+draw-adjudication policy applied across methods.
+\begin{keepblock}
+\section{Alternatives Considered}\label{sec:alternatives}
+Unpruned minimax expands all continuations within the chosen horizon.
+It will serve as the reference for correctness checks and comparisons,
+while alpha--beta is selected as the main engine because it can avoid
+unnecessary branches without changing the completed fixed-depth value.
+\end{keepblock}
+
+An existing engine such as Stockfish could supply strong move selection.
+It would delegate decisions to an external evaluation and search system,
+limiting control over the mechanisms being compared. Direct implementation
+is therefore preferred for the controlled study.
+
+Monte-Carlo tree search allocates simulations through
+sampled returns and an exploration rule \citep{kocsis2006}. It requires
+a rollout or leaf-value policy and analysis of sampling variability.
+Alpha--beta is selected because it preserves the exact minimax value
+on the fixed-depth tree used in the controlled comparison.
+
+% Keep the compact reference list together instead of stranding its last entry.
+\begin{keepblock}
+\begin{thebibliography}{6}
+\bibitem[Fiekas(n.d.)]{pythonchess}
+Fiekas, N. (n.d.).
+\newblock \emph{python-chess documentation}, version 1.11.2.
+\newblock \url{https://python-chess.readthedocs.io/en/latest/}.
+Accessed 30 October 2026.
+
+\bibitem[Knuth and Moore(1975)]{knuth1975}
+Knuth, D.~E. and Moore, R.~W. (1975).
+\newblock An analysis of alpha-beta pruning.
+\newblock \emph{Artificial Intelligence}, 6(4):293--326.
+\newblock \href{https://doi.org/10.1016/0004-3702(75)90019-3}{doi:10.1016/0004-3702(75)90019-3}.
+
+\bibitem[Kocsis and Szepesv{\'a}ri(2006)]{kocsis2006}
+Kocsis, L. and Szepesv{\'a}ri, C. (2006).
+\newblock Bandit based Monte-Carlo planning.
+\newblock In F{\"u}rnkranz, J., Scheffer, T., and Spiliopoulou, M., editors,
+\emph{Machine Learning: ECML 2006}, volume 4212 of
+\emph{Lecture Notes in Computer Science}, pages 282--293. Springer.
+\newblock \href{https://doi.org/10.1007/11871842_29}{doi:10.1007/11871842\_29}.
+
+\bibitem[Lichess(n.d.)]{lichessdata}
+Lichess (n.d.).
+\newblock \emph{Lichess open database}.
+\newblock \url{https://database.lichess.org/}.
+Accessed 30 October 2026.
+
+\bibitem[Shannon(1950)]{shannon1950}
+Shannon, C.~E. (1950).
+\newblock Programming a computer for playing chess.
+\newblock \emph{The London, Edinburgh, and Dublin Philosophical Magazine and
+Journal of Science}, 41(314):256--275.
+\newblock \href{https://doi.org/10.1080/14786445008521796}{doi:10.1080/14786445008521796}.
+
+\bibitem[Stockfish Developers(n.d.)]{stockfishdocs}
+Stockfish Developers (n.d.).
+\newblock \href{https://official-stockfish.github.io/docs/stockfish-wiki/Stockfish-FAQ.html}{\emph{Frequently asked questions}}.
+Stockfish documentation.
+Accessed 30 October 2026.
+\end{thebibliography}
+\end{keepblock}
+
+\end{document}
